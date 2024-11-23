@@ -752,7 +752,7 @@
         if (!name || /^\+?\d+$/.test(name)) {
           name = cleanedPhone;
         }
-
+        name = `${name}_(+01)`;
         contacts.push({
           name: name,
           phone: cleanedPhone,
