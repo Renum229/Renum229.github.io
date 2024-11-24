@@ -729,58 +729,97 @@
         });
 
       function parseAndUpdateVCF(vcfData) {
-  const contacts = [];
-  const contactRegex = /BEGIN:VCARD[\s\S]*?END:VCARD/g;
-  const nameRegex = /FN:(.*?)\r?\n/;
-  const telRegex = /TEL;.*?:(.*?)\r?\n/;
-  const emailRegex = /EMAIL;.*?:(.*?)\r?\n/;
+        const contacts = [];
+        const contactRegex = /BEGIN:VCARD[\s\S]*?END:VCARD/g;
+        const nameRegex = /FN:(.*?)\r?\n/;
+        const telRegex = /TEL;.*?:(.*?)\r?\n/;
+        const emailRegex = /EMAIL;.*?:(.*?)\r?\n/;
 
-  const vCards = vcfData.match(contactRegex);
-  vCards.forEach((vCard) => {
-    const nameMatch = vCard.match(nameRegex);
-    const telMatch = vCard.match(telRegex);
-    const emailMatch = vCard.match(emailRegex);
+        const vCards = vcfData.match(contactRegex);
+        vCards.forEach((vCard) => {
+          const nameMatch = vCard.match(nameRegex);
+          const telMatch = vCard.match(telRegex);
+          const emailMatch = vCard.match(emailRegex);
 
-    let name = nameMatch ? nameMatch[1] : null;
-    const phone = telMatch ? telMatch[1] : null;
-    const email = emailMatch ? emailMatch[1] : null;
+          let name = nameMatch ? nameMatch[1] : null;
+          const phone = telMatch ? telMatch[1] : null;
+          const email = emailMatch ? emailMatch[1] : null;
 
-    if (phone) {
-      const cleanedPhone = cleanPhoneNumber(phone);
-      if (cleanedPhone) {
-        // Si le nom est manquant ou ressemble à un numéro, remplacer par le numéro mis à jour
-        if (!name || /^\+?\d+$/.test(name)) {
-          name = cleanedPhone;
-        }
-        name = `${name}_(+01)`;
-        contacts.push({
-          name: name,
-          phone: cleanedPhone,
-          email: email,
+          if (phone) {
+            const cleanedPhone = cleanPhoneNumber(phone);
+            if (cleanedPhone) {
+              // Si le nom est manquant ou ressemble à un numéro, remplacer par le numéro mis à jour
+              if (!name || /^\+?\d+$/.test(name)) {
+                name = cleanedPhone;
+              }
+              name = `${name}_(+01)`;
+
+              contacts.push({
+                name: name,
+                phone: cleanedPhone,
+                email: email,
+              });
+            }
+          }
         });
+
+        return contacts;
       }
-    }
-  });
-
-  return contacts;
-}
-
 
       function cleanPhoneNumber(phone) {
         const phoneDigits = phone.replace(/\D/g, ""); // Supprime tout sauf les chiffres
-        const phoneRegex = /^(\+?229|229|0?)(\d{8})$/; // Détecte les numéros béninois valides
+        const phoneRegex = /^(\+?229|229|)(\d{8}|\d{3}-\d{3}-\d{2})$/; // Détecte les numéros béninois valides
         const otherCountryRegex = /^\+?(?!229)\d+/; // Détecte les indicatifs autres que +229
+        const validIndicatifs = [
+          "42",
+          "46",
+          "50",
+          "51",
+          "52",
+          "53",
+          "54",
+          "56",
+          "57",
+          "59",
+          "61",
+          "62",
+          "66",
+          "67",
+          "69",
+          "90",
+          "91",
+          "96",
+          "97",
+          "55",
+          "58",
+          "60",
+          "63",
+          "64",
+          "65",
+          "68",
+          "94",
+          "95",
+          "98",
+          "99",
+          "40",
+          "44",
+          "47",
+          "41",
+        ];
 
-        // Si le numéro a un indicatif étranger, on l'ignore
-        if (otherCountryRegex.test(phone)) {
-          return null;
-        }
+        
 
         // Vérifie si le numéro est béninois et met à jour
         const match = phone.match(phoneRegex);
         if (match) {
           const phoneNumber = match[2];
-          return `+229 01${phoneNumber}`; // Ajoute le +229 01 devant le numéro béninois
+          const indicatif = phoneNumber.slice(0, 2);  // Récupère les 2 premiers chiffres de l'indicatif
+
+          // Vérifie si l'indicatif fait partie des indicatifs béninois valides
+          if (validIndicatifs.includes(indicatif)) {
+            return `+229 01${phoneNumber}`; // Ajoute le +229 01 devant le numéro béninois
+          }
+
         }
 
         return null; // Ignorer les numéros non valides
