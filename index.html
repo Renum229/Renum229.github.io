@@ -526,7 +526,7 @@ document.getElementById('update-btn').addEventListener('click', function () {
             if (!name || /^\+?\d+$/.test(name)) {
               name = org || cleanedPhone;
             }
-            name = `${name}_(+01)`;
+            name = `${name}_`;
 
             contacts.push({
               name: name,
