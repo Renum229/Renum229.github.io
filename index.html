@@ -503,6 +503,7 @@ document.getElementById('update-btn').addEventListener('click', function () {
       const contacts = [];
       const contactRegex = /BEGIN:VCARD[\s\S]*?END:VCARD/g;
       const nameRegex = /FN:(.*?)\r?\n/;
+      const orgRegex = /ORG:(.*?)\r?\n/;
       const telRegex = /TEL;.*?:(.*?)\r?\n/;
       const emailRegex = /EMAIL;.*?:(.*?)\r?\n/;
 
@@ -510,9 +511,11 @@ document.getElementById('update-btn').addEventListener('click', function () {
       vCards.forEach((vCard) => {
         const nameMatch = vCard.match(nameRegex);
         const telMatch = vCard.match(telRegex);
+        const orgMatch = vCard.match(orgRegex);
         const emailMatch = vCard.match(emailRegex);
 
         let name = nameMatch ? nameMatch[1] : null;
+        const org = orgMatch ? orgMatch[1] : null;
         const phone = telMatch ? telMatch[1] : null;
         const email = emailMatch ? emailMatch[1] : null;
 
@@ -521,7 +524,7 @@ document.getElementById('update-btn').addEventListener('click', function () {
           if (cleanedPhone) {
             // Si le nom est manquant ou ressemble à un numéro, remplacer par le numéro mis à jour
             if (!name || /^\+?\d+$/.test(name)) {
-              name = cleanedPhone;
+              name = org || cleanedPhone;
             }
             name = `${name}_(+01)`;
 
