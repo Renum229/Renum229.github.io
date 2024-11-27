@@ -539,6 +539,7 @@ document.getElementById('update-btn').addEventListener('click', function () {
 
     function cleanPhoneNumber(phone) {
       const phoneDigits = phone.replace(/\D/g, ""); // Supprime tout sauf les chiffres
+      const phoneDigits2 = phoneDigits.replace(/\D/g, "-").replace(/\D/g, "."); // Supprime tout sauf les chiffres
       const phoneRegex = /^(\+?229|229|)(\d{8}|\d{3}-\d{3}-\d{2}|\d{2}-\d{2}-\d{2}-\d{2})$/; // Détecte les numéros béninois valides
       const otherCountryRegex = /^\+?(?!229)\d+/; // Détecte les indicatifs autres que +229
       const validIndicatifs = [
@@ -582,7 +583,7 @@ document.getElementById('update-btn').addEventListener('click', function () {
 
 
       // Vérifie si le numéro est béninois et met à jour
-      const match = phone.match(phoneRegex);
+      const match = phoneDigits2.match(phoneRegex);
       if (match) {
         const phoneNumber = match[2];
         const indicatif = phoneNumber.slice(0, 2);  // Récupère les 2 premiers chiffres de l'indicatif
@@ -596,6 +597,7 @@ document.getElementById('update-btn').addEventListener('click', function () {
 
       return null; // Ignorer les numéros non valides
     }
+
 
     function createVCFFile(contacts) {
       let vcfContent = "";
