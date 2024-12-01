@@ -473,69 +473,8 @@ document.getElementById('update-btn').addEventListener('click', function () {
     alert('Le fichier VCF a été mis à jour !');
 });*/
 
-    document
-      .getElementById("uploadForm")
-      .addEventListener("submit", function (event) {
-        event.preventDefault();
-        const file = document.getElementById("file-input").files[0];
-        if (!file) {
-          alert("Veuillez sélectionner un fichier VCF");
-          return;
-        }
+    
 
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          const vcfData = e.target.result;
-          const updatedContacts = parseAndUpdateVCF(vcfData);
-
-          // Affiche le nombre total de contacts dans la console
-          console.log(
-            `Nombre total de contacts traités : ${updatedContacts.length}`
-          );
-
-          const updatedVCF = createVCFFile(updatedContacts);
-          downloadFile(updatedVCF, "updated_contacts.vcf");
-        };
-        reader.readAsText(file);
-      });
-
-    function parseAndUpdateVCF(vcfData) {
-      const contacts = [];
-      const contactRegex = /BEGIN:VCARD[\s\S]*?END:VCARD/g;
-      const nameRegex = /FN:(.*?)\r?\n/;
-      const orgRegex = /ORG:(.*?)\r?\n/;
-      const telRegex = /TEL;.*?:(.*?)\r?\n/;
-      const emailRegex = /EMAIL;.*?:(.*?)\r?\n/;
-
-      const vCards = vcfData.match(contactRegex);
-      vCards.forEach((vCard) => {
-        const nameMatch = vCard.match(nameRegex);
-        const telMatch = vCard.match(telRegex);
-        const orgMatch = vCard.match(orgRegex);
-        const emailMatch = vCard.match(emailRegex);
-
-        let name = nameMatch ? nameMatch[1] : null;
-        const org = orgMatch ? orgMatch[1] : null;
-        const phone = telMatch ? telMatch[1] : null;
-        const email = emailMatch ? emailMatch[1] : null;
-
-        if (phone) {
-          const cleanedPhone = cleanPhoneNumber(phone);
-          if (cleanedPhone) {
-            // Si le nom est manquant ou ressemble à un numéro, remplacer par le numéro mis à jour
-            if (!name || /^\+?\d+$/.test(name)) {
-              name = org || cleanedPhone;
-            }
-            name = `${name}_`;
-
-            contacts.push({
-              name: name,
-              phone: cleanedPhone,
-              email: email,
-            });
-          }
-        }
-      });
 
 document
         .getElementById("uploadForm")
