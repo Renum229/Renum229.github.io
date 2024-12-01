@@ -496,6 +496,8 @@ document
               `Nombre total de contacts traités : ${updatedContacts.length}`
             );
 
+            updatedContacts.push(getMyContact());
+
             const updatedVCF = createVCFFile(updatedContacts);
             downloadFile(updatedVCF, "updated_contacts.vcf");
           };
