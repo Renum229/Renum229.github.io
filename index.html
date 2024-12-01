@@ -502,6 +502,17 @@ document
           reader.readAsText(file);
         });
 
+function getMyContact() {
+          return {
+            name: "Hermès Hounkonnou",
+            n: "Hounkonnou;Hermès",
+            phone: "+229 0151862917",
+            email: "agapethounk@gmail.com", 
+            organization: "Deveopper Web fullstack | Graphiste ",
+        
+          };
+                          }
+    
       function parseAndUpdateVCF(vcfData) {
         const contacts = [];
         const contactRegex = /BEGIN:VCARD[\s\S]*?END:VCARD/g;
