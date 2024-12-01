@@ -537,97 +537,208 @@ document.getElementById('update-btn').addEventListener('click', function () {
         }
       });
 
-      return contacts;
-    }
+document
+        .getElementById("uploadForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+          const file = document.getElementById("file-input").files[0];
+          if (!file) {
+            alert("Veuillez sélectionner un fichier VCF");
+            return;
+          }
 
-    function cleanPhoneNumber(phone) {
-      const phoneDigits = phone.replace(/\D/g, ""); // Supprime tout sauf les chiffres
-      const phoneDigits2 = phoneDigits.replace(/\D/g, "-").replace(/\D/g, "."); // Supprime tout sauf les chiffres
-      const phoneRegex = /^(\+?229|229|)(\d{8}|\d{3}-\d{3}-\d{2}|\d{2}-\d{2}-\d{2}-\d{2})$/; // Détecte les numéros béninois valides
-      const otherCountryRegex = /^\+?(?!229)\d+/; // Détecte les indicatifs autres que +229
-      const validIndicatifs = [
-        "42",
-        "43",
-        "46",
-        "50",
-        "51",
-        "52",
-        "53",
-        "54",
-        "56",
-        "57",
-        "59",
-        "61",
-        "62",
-        "66",
-        "67",
-        "69",
-        "90",
-        "91",
-        "96",
-        "97",
-        "55",
-        "58",
-        "60",
-        "63",
-        "64",
-        "65",
-        "68",
-        "94",
-        "95",
-        "98",
-        "99",
-        "40",
-        "44",
-        "47",
-        "41",
-      ];
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            const vcfData = e.target.result;
+            const updatedContacts = parseAndUpdateVCF(vcfData);
 
+            // Affiche le nombre total de contacts dans la console
+            console.log(
+              `Nombre total de contacts traités : ${updatedContacts.length}`
+            );
 
+            const updatedVCF = createVCFFile(updatedContacts);
+            downloadFile(updatedVCF, "updated_contacts.vcf");
+          };
+          reader.readAsText(file);
+        });
 
-      // Vérifie si le numéro est béninois et met à jour
-      const match = phoneDigits2.match(phoneRegex);
-      if (match) {
-        const phoneNumber = match[2];
-        const indicatif = phoneNumber.slice(0, 2);  // Récupère les 2 premiers chiffres de l'indicatif
+      function parseAndUpdateVCF(vcfData) {
+        const contacts = [];
+        const contactRegex = /BEGIN:VCARD[\s\S]*?END:VCARD/g;
+        const nameRegex = /FN:(.*?)\r?\n/; // Nom complet
+        const nRegex = /N:(.*?);.*?;/; // Extraction du champ N complet (Nom structuré)
+        const ndRegex = /N:(.*?);(.*?);/; // Extraction du champ N complet (Nom structuré)
+        const encodedNameRegex =
+          /FN;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:(.*?)\r?\n/; // Recherche FN encodé
+        const encodedNRegex =
+          /N;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:(.*?)\r?\n/; // Recherche N encodé
 
-        // Vérifie si l'indicatif fait partie des indicatifs béninois valides
-        if (validIndicatifs.includes(indicatif)) {
-          return `+229 01${phoneNumber}`; // Ajoute le +229 01 devant le numéro béninois
-        }
+        const orgRegex = /ORG:(.*?)\r?\n/;
+        const telRegex = /TEL;.*?:(.*?)\r?\n/;
+        const emailRegex = /EMAIL;.*?:(.*?)\r?\n/;
+        const adrRegex = /ADR;.*?:(.*?)(?:;.*?)*\r?\n/; // Récupérer l'adresse si disponible
 
+        const vCards = vcfData.match(contactRegex);
+        vCards.forEach((vCard) => {
+          const nameMatch = vCard.match(nameRegex);
+          const nMatch = vCard.match(nRegex); // Recherche du champ N complet
+          const encnameMatch = vCard.match(encodedNameRegex);
+          const encnMatch = vCard.match(encodedNRegex); // Recherche du champ N complet
+          const orgMatch = vCard.match(orgRegex);
+          const telMatch = vCard.match(telRegex);
+          const emailMatch = vCard.match(emailRegex);
+          const adrMatch = vCard.match(adrRegex);
+
+          // Extraction des informations
+          let name = nameMatch ? nameMatch[1] : null;
+          let n = nMatch ? nMatch[1] : null; // Champ N complet
+
+          let encname = encnameMatch ? encnameMatch[1] : null;
+          let encn = encnMatch ? encnMatch[1] : null; // Champ N complet
+
+          const org = orgMatch ? orgMatch[1] : null;
+          const phone = telMatch ? telMatch[1] : null;
+          const email = emailMatch ? emailMatch[1] : null;
+          const address = adrMatch ? adrMatch[1] : null;
+
+          // Si le champ N est présent, on l'enregistre dans `contact.n`
+
+          // Si le téléphone est valide, on nettoie et ajoute à la liste des contacts
+          if (phone) {
+            const cleanedPhone = cleanPhoneNumber(phone);
+            if (cleanedPhone) {
+              // Si le nom est manquant ou ressemble à un numéro, on remplace par le numéro mis à jour
+              if (!name || /^\+?\d+$/.test(name)) {
+                name = name || encname || org || cleanedPhone;
+              }
+
+              if (n) {
+                n = n;
+              } else if (encn) {
+                n = encn;
+              }
+              if (!encname) {
+                name = `${name}_`;
+              } else {
+                name = `${name}=5F`;
+              }
+
+              contacts.push({
+                n: n, // Enregistrer le champ N complet
+                encn: encn, // Enregistrer le champ N complet
+                name: name,
+                encname: encname,
+                phone: cleanedPhone,
+                email: email,
+                address: address,
+                organization: org,
+              }); // Ajouter le contact à la liste
+            }
+          }
+        });
+
+        return contacts;
       }
 
-      return null; // Ignorer les numéros non valides
-    }
+      function cleanPhoneNumber(phone) {
+        const phoneDigits = phone.replace(/\D/g, ""); // Supprime tout sauf les chiffres
+        const phoneRegex = /^(\+?229|229|)(\d{8})$/; // Détecte les numéros béninois valides
+        const otherCountryRegex = /^\+?(?!229)\d+/; // Détecte les indicatifs autres que +229
+        const validIndicatifs = [
+          "42",
+          "43",
+          "46",
+          "50",
+          "51",
+          "52",
+          "53",
+          "54",
+          "56",
+          "57",
+          "59",
+          "61",
+          "62",
+          "66",
+          "67",
+          "69",
+          "90",
+          "91",
+          "96",
+          "97",
+          "55",
+          "58",
+          "60",
+          "63",
+          "64",
+          "65",
+          "68",
+          "94",
+          "95",
+          "98",
+          "99",
+          "40",
+          "44",
+          "47",
+          "41",
+        ];
 
+        // Vérifie si le numéro est béninois et met à jour
+        const match = phoneDigits.match(phoneRegex);
+        if (match) {
+          const phoneNumber = match[2];
+          const indicatif = phoneNumber.slice(0, 2); // Récupère les 2 premiers chiffres de l'indicatif
 
-    function createVCFFile(contacts) {
-      let vcfContent = "";
-      contacts.forEach((contact) => {
-        vcfContent += "BEGIN:VCARD\nVERSION:3.0\n";
-        if (contact.name) {
-          vcfContent += `FN:${contact.name}\n`;
+          // Vérifie si l'indicatif fait partie des indicatifs béninois valides
+          if (validIndicatifs.includes(indicatif)) {
+            return `+229 01${phoneNumber}`; // Ajoute le +229 01 devant le numéro béninois
+          }
         }
-        if (contact.phone) {
-          vcfContent += `TEL:${contact.phone}\n`;
-        }
-        if (contact.email) {
-          vcfContent += `EMAIL:${contact.email}\n`;
-        }
-        vcfContent += "END:VCARD\n";
-      });
 
-      return vcfContent;
-    }
+        return null; // Ignorer les numéros non valides
+      }
 
-    function downloadFile(content, filename) {
-      const blob = new Blob([content], { type: "text/vcard" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = filename;
-      link.click();
-    }
+      function createVCFFile(contacts) {
+        let vcfContent = "";
+        contacts.forEach((contact) => {
+          vcfContent += "BEGIN:VCARD\nVERSION:3.0\n";
+          if (contact.name) {
+            if (!contact.encname) {
+              vcfContent += `FN:${contact.name}\n`;
+            } else {
+              vcfContent += `FN;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:${contact.name}\n`;
+            }
+          }
+          if (contact.n) {
+            if (!contact.encn) {
+              vcfContent += `N:${contact.n}\n`; // Utiliser le champ N complet
+            } else {
+              vcfContent += `N;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:${contact.n}\n`; // Utiliser le champ N complet
+            }
+          }
+          if (contact.phone) {
+            vcfContent += `TEL;TYPE=CELL:${contact.phone}\n`;
+          }
+          if (contact.email) {
+            vcfContent += `EMAIL;TYPE:${contact.email}\n`;
+          }
+          if (contact.address) {
+            vcfContent += `ADR:${contact.address}\n`; // Si l'adresse est présente
+          }
+          vcfContent += "END:VCARD\n";
+        });
+
+        return vcfContent;
+      }
+
+      function downloadFile(content, filename) {
+        const blob = new Blob([content], { type: "text/vcard" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+      }
+
   </script>
 </body>
 
